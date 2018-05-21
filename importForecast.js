@@ -121,7 +121,7 @@ var getForecast = function () {
                 console.log('timestamp      : ' + currently.time + '000000000');
             }
 
-            influx.writePoints(curr_point).catch(err => {
+            influx.writePoints([curr_point]).catch(err => {
                 console.error('Error writing to InfluxDB', err)
             })
 			
