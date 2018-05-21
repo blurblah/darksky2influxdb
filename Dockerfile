@@ -1,4 +1,4 @@
-FROM node:9.11
+FROM node:9.11-slim
 MAINTAINER blurblah@blurblah.net
 
 # Create a directory where this app will be placed
