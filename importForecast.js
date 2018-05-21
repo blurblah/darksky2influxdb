@@ -47,6 +47,23 @@ const influx = new Influx.InfluxDB({
                 nightime_show: Influx.FieldType.FLOAT
 
             }
+        },
+        {
+            measurement: 'current',
+            tags: ['source'],
+            fields: {
+            	precipIntensity: Influx.FieldType.FLOAT,
+            	precipProbability: Influx.FieldType.FLOAT,
+                temperature: Influx.FieldType.FLOAT,
+                apparent_temperature: Influx.FieldType.FLOAT,
+                dew_point: Influx.FieldType.FLOAT,
+                humidity: Influx.FieldType.FLOAT,
+                wind_speed: Influx.FieldType.FLOAT,
+                wind_bearing: Influx.FieldType.FLOAT,
+                cloud_cover: Influx.FieldType.FLOAT,
+                pressure: Influx.FieldType.FLOAT,
+                ozone: Influx.FieldType.FLOAT,
+            }
         }
     ]
 })
@@ -55,7 +72,7 @@ const darksky = new DarkSky(darkskyConfig.key);
 
 var getForecast = function () {
     darksky.forecast(darkskyConfig.latitude, darkskyConfig.longitude, {
-        exclude: ['minutely', 'currently', 'alerts', 'flags'],
+        exclude: ['minutely', 'alerts', 'flags'],
         units: darkskyConfig.units,
         lang: darkskyConfig.language,
         extend: 'hourly'
@@ -70,11 +87,45 @@ var getForecast = function () {
 
             var daily = forecast.daily;
             var hourly = forecast.hourly;
+            var currently = forecast.currently;
 
             if (generalConfig.debug) {
                 console.dir(hourly)
             }
 
+			console.log('Writing Currently Datapoints to InfluxDB in Database "' + influxConfig.database + '" with measurement "current" on ' + influxConfig.host);
+			var curr_point = {
+				measurement: 'current',
+				fields: {
+					precipIntensity: currently.precipIntensity,
+            		precipProbability: currently.precipProbability,
+                	temperature: currently.temperature,
+                	apparent_temperature: currently.apparentTemperature,
+                	dew_point: currently.dewPoint,
+                	humidity: currently.humidity,
+                	wind_speed: currently.windSpeed,
+                	wind_bearing: currently.windBearing,
+                	cloud_cover: currently.cloudCover,
+                	pressure: currently.pressure,
+                	ozone: currently.ozone
+				},
+				tags: {
+                	source: 'darksky'
+                },
+                timestamp: currently.time + '000000000'
+			};
+			
+			if (generalConfig.debug) {
+                console.log('Writing Currently Point :');
+                console.log('Temperature    : ' + currently.temperature);
+                console.log('timestamp      : ' + currently.time + '000000000');
+            }
+
+            influx.writePoints(curr_point).catch(err => {
+                console.error('Error writing to InfluxDB', err)
+            })
+			
+			
             console.log('Writing '+ hourly.data.length +' Datapoints to InfluxDB in Database "' + influxConfig.database + '" with measurement "forecast" on ' + influxConfig.host);
              for (var i = 0, len = hourly.data.length; i < len; ++i) {
                  var fc = hourly.data[i];
